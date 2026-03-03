@@ -1,9 +1,5 @@
 package smetrics
 
-import (
-	"strings"
-)
-
 // Metaphone computes the Metaphone phonetic encoding of the given string.
 // It is a phonetic algorithm that produces a code representing the English
 // pronunciation of a word. Words that sound similar should produce the same code.
@@ -19,20 +15,18 @@ func Metaphone(s string) string {
 
 	// Filter to letters only and convert to uppercase.
 	chars := filterLetters(s)
-	n := len(chars)
-	if n == 0 {
+	if len(chars) == 0 {
 		return ""
-	}
-	if n == 1 {
-		return string(chars)
 	}
 
 	// Transform first characters.
 	chars = transformFirst(chars)
-	n = len(chars)
+	n := len(chars)
+	if n == 1 {
+		return string(chars)
+	}
 
-	b := strings.Builder{}
-	b.Grow(n)
+	result := make([]byte, 0, n)
 
 	for i := 0; i < n; i++ {
 		c := chars[i]
@@ -46,13 +40,13 @@ func Metaphone(s string) string {
 		case 'A', 'E', 'I', 'O', 'U':
 			// Vowels are only kept at the beginning.
 			if i == 0 {
-				b.WriteByte(c)
+				result = append(result, c)
 			}
 
 		case 'B':
 			// B is silent in final MB.
 			if !(i == n-1 && i > 0 && chars[i-1] == 'M') {
-				b.WriteByte('B')
+				result = append(result, 'B')
 			}
 
 		case 'C':
@@ -62,28 +56,28 @@ func Metaphone(s string) string {
 			}
 			if i > 0 && chars[i-1] == 'S' && i+1 < n && chars[i+1] == 'H' {
 				// SCH → SK
-				b.WriteByte('K')
+				result = append(result, 'K')
 			} else if (i+1 < n && chars[i+1] == 'H') || (i+2 < n && chars[i+1] == 'I' && chars[i+2] == 'A') {
 				// CIA or CH → X
-				b.WriteByte('X')
+				result = append(result, 'X')
 			} else if i+1 < n && isFrontvByte(chars[i+1]) {
 				// CI, CE, CY → S
-				b.WriteByte('S')
+				result = append(result, 'S')
 			} else {
-				b.WriteByte('K')
+				result = append(result, 'K')
 			}
 
 		case 'D':
 			if i+2 < n && chars[i+1] == 'G' && isFrontvByte(chars[i+2]) {
 				// DGE, DGI, DGY → J
-				b.WriteByte('J')
+				result = append(result, 'J')
 				i += 2
 			} else {
-				b.WriteByte('T')
+				result = append(result, 'T')
 			}
 
 		case 'F':
-			b.WriteByte('F')
+			result = append(result, 'F')
 
 		case 'G':
 			// GH at end or before consonant → silent.
@@ -97,9 +91,9 @@ func Metaphone(s string) string {
 				continue
 			}
 			if i+1 < n && isFrontvByte(chars[i+1]) {
-				b.WriteByte('J')
+				result = append(result, 'J')
 			} else {
-				b.WriteByte('K')
+				result = append(result, 'K')
 			}
 
 		case 'H':
@@ -114,96 +108,106 @@ func Metaphone(s string) string {
 				continue
 			}
 			if isVowelByte(chars[i+1]) {
-				b.WriteByte('H')
+				result = append(result, 'H')
 			}
 
 		case 'J':
-			b.WriteByte('J')
+			result = append(result, 'J')
 
 		case 'K':
 			// K after C is silent.
 			if i > 0 && chars[i-1] == 'C' {
 				continue
 			}
-			b.WriteByte('K')
+			result = append(result, 'K')
 
 		case 'L':
-			b.WriteByte('L')
+			result = append(result, 'L')
 
 		case 'M':
-			b.WriteByte('M')
+			result = append(result, 'M')
 
 		case 'N':
-			b.WriteByte('N')
+			result = append(result, 'N')
 
 		case 'P':
 			if i+1 < n && chars[i+1] == 'H' {
-				b.WriteByte('F')
+				result = append(result, 'F')
 			} else {
-				b.WriteByte('P')
+				result = append(result, 'P')
 			}
 
 		case 'Q':
-			b.WriteByte('K')
+			result = append(result, 'K')
 
 		case 'R':
-			b.WriteByte('R')
+			result = append(result, 'R')
 
 		case 'S':
 			if i+1 < n && chars[i+1] == 'H' {
-				b.WriteByte('X')
+				result = append(result, 'X')
 			} else if i+2 < n && chars[i+1] == 'I' && (chars[i+2] == 'O' || chars[i+2] == 'A') {
-				b.WriteByte('X')
+				result = append(result, 'X')
 			} else {
-				b.WriteByte('S')
+				result = append(result, 'S')
 			}
 
 		case 'T':
 			if i+2 < n && chars[i+1] == 'I' && (chars[i+2] == 'A' || chars[i+2] == 'O') {
-				b.WriteByte('X')
+				result = append(result, 'X')
 			} else if i+2 < n && chars[i+1] == 'C' && chars[i+2] == 'H' {
 				// TCH — T is silent.
 				continue
 			} else if i+1 < n && chars[i+1] == 'H' {
-				b.WriteByte('0') // theta
+				result = append(result, '0') // theta
 			} else {
-				b.WriteByte('T')
+				result = append(result, 'T')
 			}
 
 		case 'V':
-			b.WriteByte('F')
+			result = append(result, 'F')
 
 		case 'W':
 			if i+1 < n && isVowelByte(chars[i+1]) {
-				b.WriteByte('W')
+				result = append(result, 'W')
 			}
 
 		case 'X':
-			b.WriteByte('K')
-			b.WriteByte('S')
+			result = append(result, 'K')
+			result = append(result, 'S')
 
 		case 'Y':
 			if i+1 < n && isVowelByte(chars[i+1]) {
-				b.WriteByte('Y')
+				result = append(result, 'Y')
 			}
 
 		case 'Z':
-			b.WriteByte('S')
+			result = append(result, 'S')
 		}
 	}
 
-	return b.String()
+	return string(result)
 }
 
 // filterLetters removes non-letter characters and converts to uppercase.
 func filterLetters(s string) []byte {
-	out := make([]byte, 0, len(s))
+	count := 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
+			count++
+		}
+	}
+	out := make([]byte, count)
+	j := 0
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 		if c >= 'a' && c <= 'z' {
-			out = append(out, c-32)
+			out[j] = c - 32
+			j++
 		} else if c >= 'A' && c <= 'Z' {
-			out = append(out, c)
+			out[j] = c
+			j++
 		}
 	}
 	return out
@@ -212,6 +216,12 @@ func filterLetters(s string) []byte {
 // transformFirst applies first-character transformations per the original algorithm:
 // KN, GN, PN → drop first letter; AE → drop A; WR → drop W; WH → drop H; X → S.
 func transformFirst(s []byte) []byte {
+	if len(s) == 1 {
+		if s[0] == 'X' {
+			s[0] = 'S'
+		}
+		return s
+	}
 	if len(s) < 2 {
 		return s
 	}
